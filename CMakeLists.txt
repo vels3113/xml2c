@@ -64,6 +64,10 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
+# -------- CLI ----------
+add_executable(xml2c src/main.cpp)
+target_link_libraries(xml2c PRIVATE xml_to_c)
+
 # -------- Tests ----------
 add_executable(tests tests/test_xml_to_c.cpp)
 target_link_libraries(tests PRIVATE xml_to_c GTest::gtest GTest::gtest_main)
