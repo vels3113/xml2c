@@ -261,72 +261,72 @@ static constexpr std::string_view PI_XML = R"(<?xml version="1.0" encoding="utf-
 <Line><P Name="Src">26#out:1</P><P Name="Dst">22#in:1</P></Line>
 </System>)";
 
-TEST(Emitter, StructContainsAllFields) {
-    auto result = XmlToC::convert(PI_XML, "controller");
-    EXPECT_NE(result.find("double setpoint;"),    std::string::npos);
-    EXPECT_NE(result.find("double feedback;"),    std::string::npos);
-    EXPECT_NE(result.find("double Unit_Delay1;"), std::string::npos);
-    EXPECT_NE(result.find("double Add1;"),        std::string::npos);
-    EXPECT_NE(result.find("} controller;"),       std::string::npos);
+class EmitterTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        pi_result = XmlToC::convert(PI_XML, "controller");
+    }
+
+    static std::string pi_result;
+};
+
+std::string EmitterTest::pi_result;
+
+TEST_F(EmitterTest, StructContainsAllFields) {
+    EXPECT_NE(pi_result.find("double setpoint;"),    std::string::npos);
+    EXPECT_NE(pi_result.find("double feedback;"),    std::string::npos);
+    EXPECT_NE(pi_result.find("double Unit_Delay1;"), std::string::npos);
+    EXPECT_NE(pi_result.find("double Add1;"),        std::string::npos);
+    EXPECT_NE(pi_result.find("} controller;"),       std::string::npos);
 }
 
-TEST(Emitter, InitResetsOnlyUnitDelays) {
-    auto result = XmlToC::convert(PI_XML, "controller");
-    EXPECT_NE(result.find("controller.Unit_Delay1 = unitdelay_init()"), std::string::npos);
-    EXPECT_EQ(result.find("controller.Add1 = 0"),        std::string::npos);
+TEST_F(EmitterTest, InitResetsOnlyUnitDelays) {
+    EXPECT_NE(pi_result.find("controller.Unit_Delay1 = unitdelay_init()"), std::string::npos);
+    EXPECT_EQ(pi_result.find("controller.Add1 = 0"),        std::string::npos);
 }
 
-TEST(Emitter, StepComputesCorrectOrder) {
-    auto result = XmlToC::convert(PI_XML, "controller");
-    // Find the _step() function
-    auto step_start = result.find("void controller_generated_step()");
+TEST_F(EmitterTest, StepComputesCorrectOrder) {
+    auto step_start = pi_result.find("void controller_generated_step()");
     ASSERT_NE(step_start, std::string::npos);
-    // Look for assignments within the step function
-    auto pAdd1  = result.find("controller.Add1 =", step_start);
-    auto pIgain = result.find("controller.I_gain =", step_start);
-    auto pPgain = result.find("controller.P_gain =", step_start);
-    auto pAdd3  = result.find("controller.Add3 =", step_start);
-    auto pUD    = result.find("delay_update(&controller.Unit_Delay1, controller.Add2)", step_start);
+    auto pAdd1  = pi_result.find("controller.Add1 =", step_start);
+    auto pIgain = pi_result.find("controller.I_gain =", step_start);
+    auto pPgain = pi_result.find("controller.P_gain =", step_start);
+    auto pAdd3  = pi_result.find("controller.Add3 =", step_start);
+    auto pUD    = pi_result.find("delay_update(&controller.Unit_Delay1, controller.Add2)", step_start);
     EXPECT_LT(pAdd1,  pIgain);
     EXPECT_LT(pAdd1,  pPgain);
     EXPECT_LT(pAdd3,  pUD);
 }
 
-TEST(Emitter, StepSumWithSigns) {
-    auto result = XmlToC::convert(PI_XML, "controller");
-    EXPECT_NE(result.find("controller.Add1 = sum(controller.setpoint, controller.feedback, \"+-\")"), std::string::npos);
+TEST_F(EmitterTest, StepSumWithSigns) {
+    EXPECT_NE(pi_result.find("controller.Add1 = sum(controller.setpoint, controller.feedback, \"+-\")"), std::string::npos);
 }
 
-TEST(Emitter, StepGainMultiplies) {
-    auto result = XmlToC::convert(PI_XML, "controller");
-    EXPECT_NE(result.find("controller.P_gain = gain(controller.Add1, 3)"),      std::string::npos);
-    EXPECT_NE(result.find("controller.I_gain = gain(controller.Add1, 2)"),      std::string::npos);
-    EXPECT_NE(result.find("controller.Ts = gain(controller.I_gain, 0.01)"),     std::string::npos);
+TEST_F(EmitterTest, StepGainMultiplies) {
+    EXPECT_NE(pi_result.find("controller.P_gain = gain(controller.Add1, 3)"),      std::string::npos);
+    EXPECT_NE(pi_result.find("controller.I_gain = gain(controller.Add1, 2)"),      std::string::npos);
+    EXPECT_NE(pi_result.find("controller.Ts = gain(controller.I_gain, 0.01)"),     std::string::npos);
 }
 
-TEST(Emitter, ExtPortsTable) {
-    auto result = XmlToC::convert(PI_XML, "controller");
-    EXPECT_NE(result.find("\"command\""),  std::string::npos);
-    EXPECT_NE(result.find("\"setpoint\""), std::string::npos);
-    EXPECT_NE(result.find("{ 0, 0, 0 }"), std::string::npos);
+TEST_F(EmitterTest, ExtPortsTable) {
+    EXPECT_NE(pi_result.find("\"command\""),  std::string::npos);
+    EXPECT_NE(pi_result.find("\"setpoint\""), std::string::npos);
+    EXPECT_NE(pi_result.find("{ 0, 0, 0 }"), std::string::npos);
 }
 
-TEST(Emitter, FullPiControllerGolden) {
-    auto result = XmlToC::convert(PI_XML, "controller");
-    EXPECT_NE(result.find("void controller_generated_init()"),    std::string::npos);
-    EXPECT_NE(result.find("void controller_generated_step()"),    std::string::npos);
-    EXPECT_NE(result.find("controller_generated_ext_ports"),      std::string::npos);
-    EXPECT_NE(result.find("controller_generated_ext_ports_size"), std::string::npos);
+TEST_F(EmitterTest, FullPiControllerGolden) {
+    EXPECT_NE(pi_result.find("void controller_generated_init()"),    std::string::npos);
+    EXPECT_NE(pi_result.find("void controller_generated_step()"),    std::string::npos);
+    EXPECT_NE(pi_result.find("controller_generated_ext_ports"),      std::string::npos);
+    EXPECT_NE(pi_result.find("controller_generated_ext_ports_size"), std::string::npos);
 }
 
-TEST(Emitter, GeneratedCCompiles) {
-    auto c_src = XmlToC::convert(PI_XML, "controller");
-
+TEST_F(EmitterTest, GeneratedCCompiles) {
     constexpr std::string_view stub =
         "#include <stddef.h>\n"
         "typedef struct { const char* name; double* ptr; int isInput; } controller_ExtPort;\n";
-    auto newline = c_src.find('\n');
-    std::string src = std::string(stub) + c_src.substr(newline + 1);
+    auto newline = pi_result.find('\n');
+    std::string src = std::string(stub) + pi_result.substr(newline + 1);
 
     const std::string tmp = "/tmp/xml_to_c_gen_test.c";
     {
