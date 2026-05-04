@@ -1,10 +1,10 @@
-# xml-to-c: Signal-Flow Graph Code Generator
+# xml2c: Signal-Flow Graph Code Generator
 
 A C++23 header-only library and CLI tool that transforms XML-described signal-flow diagrams (block diagrams) into optimized C code.
 
 ## Overview
 
-`xml-to-c` parses XML representations of control systems and generates equivalent C code with a typed struct, initialization function, step function, and external I/O port table. The library implements a three-stage pipeline:
+`xml2c` parses XML representations of control systems and generates equivalent C code with a typed struct, initialization function, step function, and external I/O port table. The library implements a three-stage pipeline:
 
 1. **Parse**: pugixml DOM parser converts XML → in-memory graph structure
 2. **Sort**: Kahn's algorithm topological sort respects UnitDelay feedback-edge semantics
@@ -29,11 +29,6 @@ A C++23 header-only library and CLI tool that transforms XML-described signal-fl
 | UnitDelay | One-step memory; output = prev input, state updated last |
 | Unknown   | Unrecognized types skipped in codegen |
 
-### Identifier Sanitization
-
-Block names are converted to valid C identifiers: non-alphanumeric chars → `_`, leading digits prepended with `_`.
-Example: `"Unit Delay1"` → `"Unit_Delay1"`
-
 ## Building
 
 ```bash
@@ -49,14 +44,8 @@ All builds use `clang++` with C++23. Build artifacts land in `build/<preset>/`.
 ```cpp
 #include "xml_to_c.hpp"
 
-// Parse XML
-auto graph = xml_to_c::parse(xml_string);
-
-// Topological sort
-auto order = xml_to_c::topo_sort(graph);
-
 // Generate C code
-auto c_source = xml_to_c::generate(graph, "controller");
+auto c_source = Xml2C::convert(xml_string, "controller");
 
 std::cout << c_source;
 ```
